@@ -1,114 +1,247 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
-import React from 'react';
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable no-unused-vars */
+import React, {Component} from 'react';
 import {
-  SafeAreaView,
+  AppRegistry,
   StyleSheet,
-  ScrollView,
-  View,
   Text,
-  StatusBar,
+  TextInput,
+  View,
+  Button,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 
 import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-};
+  TwilioVideoLocalView,
+  TwilioVideoParticipantView,
+  TwilioVideo,
+} from 'react-native-twilio-video-webrtc';
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
   },
-  engine: {
+  callContainer: {
+    flex: 1,
     position: 'absolute',
+    bottom: 0,
+    top: 0,
+    left: 0,
     right: 0,
   },
-  body: {
-    backgroundColor: Colors.white,
+  welcome: {
+    fontSize: 30,
+    textAlign: 'center',
+    paddingTop: 40,
   },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  input: {
+    height: 50,
+    borderWidth: 1,
+    marginRight: 70,
+    marginLeft: 70,
+    marginTop: 50,
+    textAlign: 'center',
+    backgroundColor: 'white',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
+  button: {
+    marginTop: 100,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
+  localVideo: {
+    flex: 1,
+    width: 150,
+    height: 250,
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
   },
-  highlight: {
-    fontWeight: '700',
+  remoteGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  remoteVideo: {
+    marginTop: 20,
+    marginLeft: 10,
+    marginRight: 10,
+    width: 100,
+    height: 120,
+  },
+  optionsContainer: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: 'blue',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionButton: {
+    width: 60,
+    height: 60,
+    marginLeft: 10,
+    marginRight: 10,
+    borderRadius: 100 / 2,
+    backgroundColor: 'grey',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
-export default App;
+export default class Example extends Component {
+  state = {
+    isAudioEnabled: true,
+    isVideoEnabled: true,
+    status: 'disconnected',
+    participants: new Map(),
+    videoTracks: new Map(),
+    roomName: '',
+    token: '',
+  };
+
+  _onConnectButtonPress = () => {
+    this.twilioVideoRef.twilioVideo.connect({
+      roomName: this.state.roomName,
+      accessToken: this.state.token,
+    });
+    this.setState({status: 'connecting'});
+  };
+
+  _onEndButtonPress = () => {
+    this.twilioVideoRef.twilioVideo.disconnect();
+  };
+
+  _onMuteButtonPress = () => {
+    this.twilioVideoRef.twilioVideo
+      .setLocalAudioEnabled(!this.state.isAudioEnabled)
+      .then((isEnabled) => this.setState({isAudioEnabled: isEnabled}));
+  };
+
+  _onFlipButtonPress = () => {
+    this.twilioVideoRef.twilioVideo.flipCamera();
+  };
+
+  _onRoomDidConnect = () => {
+    this.setState({status: 'connected'});
+  };
+
+  _onRoomDidDisconnect = ({roomName, error}) => {
+    console.log('ERROR: ', error);
+
+    this.setState({status: 'disconnected'});
+  };
+
+  _onRoomDidFailToConnect = (error) => {
+    console.log('ERROR: ', error);
+
+    this.setState({status: 'disconnected'});
+  };
+
+  _onParticipantAddedVideoTrack = ({participant, track}) => {
+    console.log('onParticipantAddedVideoTrack: ', participant, track);
+
+    this.setState({
+      videoTracks: new Map([
+        ...this.state.videoTracks,
+        [
+          track.trackSid,
+          {participantSid: participant.sid, videoTrackSid: track.trackSid},
+        ],
+      ]),
+    });
+  };
+
+  _onParticipantRemovedVideoTrack = ({participant, track}) => {
+    console.log('onParticipantRemovedVideoTrack: ', participant, track);
+
+    const videoTracks = this.state.videoTracks;
+    videoTracks.delete(track.trackSid);
+
+    this.setState({videoTracks: new Map([...videoTracks])});
+  };
+
+  render() {
+    return (
+      <View style={styles.container}>
+        {this.state.status === 'disconnected' && (
+          <View>
+            <Text style={styles.welcome}>React Native Twilio Video</Text>
+            <TextInput
+              style={styles.input}
+              autoCapitalize="none"
+              value={this.state.roomName}
+              onChangeText={(text) => this.setState({roomName: text})}
+            />
+            <TextInput
+              style={styles.input}
+              autoCapitalize="none"
+              value={this.state.token}
+              onChangeText={(text) => this.setState({token: text})}
+            />
+            <Button
+              title="Connect"
+              style={styles.button}
+              onPress={this._onConnectButtonPress}
+            />
+          </View>
+        )}
+
+        {(this.state.status === 'connected' ||
+          this.state.status === 'connecting') && (
+          <View style={styles.callContainer}>
+            {this.state.status === 'connected' && (
+              <View style={styles.remoteGrid}>
+                {Array.from(
+                  this.state.videoTracks,
+                  ([trackSid, trackIdentifier]) => {
+                    return (
+                      <TwilioVideoParticipantView
+                        style={styles.remoteVideo}
+                        key={trackSid}
+                        trackIdentifier={trackIdentifier}
+                      />
+                    );
+                  },
+                )}
+              </View>
+            )}
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onEndButtonPress}>
+                <Text style={{fontSize: 12}}>End</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onMuteButtonPress}>
+                <Text style={{fontSize: 12}}>
+                  {this.state.isAudioEnabled ? 'Mute' : 'Unmute'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={this._onFlipButtonPress}>
+                <Text style={{fontSize: 12}}>Flip</Text>
+              </TouchableOpacity>
+              <TwilioVideoLocalView enabled={true} style={styles.localVideo} />
+            </View>
+          </View>
+        )}
+
+        <TwilioVideo
+          ref={(c) => {
+            this.twilioVideoRef = c;
+          }}
+          // ref="twilioVideo"
+          onRoomDidConnect={this._onRoomDidConnect}
+          onRoomDidDisconnect={this._onRoomDidDisconnect}
+          onRoomDidFailToConnect={this._onRoomDidFailToConnect}
+          onParticipantAddedVideoTrack={this._onParticipantAddedVideoTrack}
+          onParticipantRemovedVideoTrack={this._onParticipantRemovedVideoTrack}
+        />
+      </View>
+    );
+  }
+}
