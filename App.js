@@ -36,12 +36,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 40,
   },
+  textfieldName: {
+    fontSize: 20,
+    textAlign: 'center',
+    paddingTop: 50,
+  },
   input: {
     height: 50,
     borderWidth: 1,
     marginRight: 70,
     marginLeft: 70,
-    marginTop: 50,
+    marginTop: 10,
     textAlign: 'center',
     backgroundColor: 'white',
   },
@@ -102,7 +107,7 @@ export default class Example extends Component {
   };
 
   _onConnectButtonPress = () => {
-    this.twilioVideoRef.twilioVideo.connect({
+    this.twilioVideoRef.connect({
       roomName: this.state.roomName,
       accessToken: this.state.token,
     });
@@ -110,17 +115,17 @@ export default class Example extends Component {
   };
 
   _onEndButtonPress = () => {
-    this.twilioVideoRef.twilioVideo.disconnect();
+    this.twilioVideoRef.disconnect();
   };
 
   _onMuteButtonPress = () => {
-    this.twilioVideoRef.twilioVideo
+    this.twilioVideoRef
       .setLocalAudioEnabled(!this.state.isAudioEnabled)
       .then((isEnabled) => this.setState({isAudioEnabled: isEnabled}));
   };
 
   _onFlipButtonPress = () => {
-    this.twilioVideoRef.twilioVideo.flipCamera();
+    this.twilioVideoRef.flipCamera();
   };
 
   _onRoomDidConnect = () => {
@@ -128,7 +133,7 @@ export default class Example extends Component {
   };
 
   _onRoomDidDisconnect = ({roomName, error}) => {
-    console.log('ERROR: ', error);
+    console.log(roomName + ' ERROR: ', error);
 
     this.setState({status: 'disconnected'});
   };
@@ -168,12 +173,14 @@ export default class Example extends Component {
         {this.state.status === 'disconnected' && (
           <View>
             <Text style={styles.welcome}>React Native Twilio Video</Text>
+            <Text style={styles.textfieldName}>Room Name</Text>
             <TextInput
               style={styles.input}
               autoCapitalize="none"
               value={this.state.roomName}
               onChangeText={(text) => this.setState({roomName: text})}
             />
+            <Text style={styles.textfieldName}>Token</Text>
             <TextInput
               style={styles.input}
               autoCapitalize="none"
@@ -234,7 +241,6 @@ export default class Example extends Component {
           ref={(c) => {
             this.twilioVideoRef = c;
           }}
-          // ref="twilioVideo"
           onRoomDidConnect={this._onRoomDidConnect}
           onRoomDidDisconnect={this._onRoomDidDisconnect}
           onRoomDidFailToConnect={this._onRoomDidFailToConnect}
